@@ -52,5 +52,5 @@ def index():
         return send_file(latest, as_attachment=True)
 
     return render_template_string(HTML, message=None)
-
+    if __name__ == "__main__":
 app.run(host="0.0.0.0", port=5000)
