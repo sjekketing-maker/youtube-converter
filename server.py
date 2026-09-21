@@ -1,32 +1,17 @@
-import requests
-from flask import Flask, request, render_template_string, redirect, abort
+import os
+import subprocess
+from flask import Flask, request, send_file, abort
 
 app = Flask(__name__)
 
-HTML = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>YouTube Downloader</title>
-</head>
-<body>
-    <h1>YouTube Downloader</h1>
-    <form method="POST" action="/download">
-        <input type="text" name="url" placeholder="Lim inn YouTube-lenke" required>
-        <button type="submit">Last ned</button>
-    </form>
-</body>
-</html>
-"""
-
-def extract_video_id(url):
-    if "v=" in url:
-        return url.split("v=")[-1].split("&")[0]
-    return url.rsplit("/", 1)[-1]
-
 @app.route("/")
 def index():
-    return render_template_string(HTML)
+    return """
+    <form method="POST" action="/download">
+        <input name="url" placeholder="Lim inn YouTube-lenke" required>
+        <button type="submit">Last ned</button>
+    </form>
+    """
 
 @app.route("/download", methods=["POST"])
 def download():
@@ -34,25 +19,19 @@ def download():
     if not url:
         return abort(400, "Ingen URL oppgitt")
 
-    video_id = extract_video_id(url)
+    os.makedirs("downloads", exist_ok=True)
+    output_path = os.path.join("downloads", "%(title)s.%(ext)s")
 
-    # Hent manifest fra YouTube
-    manifest_url = f"https://www.youtube.com/get_video_info?video_id={video_id}"
-    r = requests.get(manifest_url)
+    try:
+        subprocess.run(["yt-dlp", "-o", output_path, url], check=True)
+    except subprocess.CalledProcessError as e:
+        print("yt-dlp error:", e)
+        return abort(500, "Feil ved nedlasting")
 
-    if r.status_code != 200:
-        return abort(500, "Kunne ikke hente manifest")
-
-    data = r.text
-
-    # Finn første videostrøm
-    if "url=" not in data:
-        return abort(500, "Ingen videostrøm funnet")
-
-    stream_url = data.split("url=")[1].split("&")[0]
-    stream_url = requests.utils.unquote(stream_url)
-
-    return redirect(stream_url)
+    files = sorted(os.listdir("downloads"), key=lambda f: os.path.getmtime(os.path.join("downloads", f)))
+    latest_file = os.path.join("downloads", files[-1])
+    return send_file(latest_file, as_attachment=True)
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    port = int(os.environ.get("PORT", 8000))
+    app.run(host="0.0.0.0", port=port)
