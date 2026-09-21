@@ -19,17 +19,20 @@ def download():
     if not url:
         return abort(400, "Ingen URL oppgitt")
 
-    os.makedirs("downloads", exist_ok=True)
-    output_path = os.path.join("downloads", "%(title)s.%(ext)s")
+    os.makedirs("/tmp/downloads", exist_ok=True)
+    output_path = "/tmp/downloads/%(title)s.%(ext)s"
 
     try:
-        subprocess.run(["yt-dlp", "-o", output_path, url], check=True)
+        subprocess.run(
+            ["yt-dlp", "--no-playlist", "--no-warnings", "-o", output_path, url],
+            check=True
+        )
     except subprocess.CalledProcessError as e:
         print("yt-dlp error:", e)
         return abort(500, "Feil ved nedlasting")
 
-    files = sorted(os.listdir("downloads"), key=lambda f: os.path.getmtime(os.path.join("downloads", f)))
-    latest_file = os.path.join("downloads", files[-1])
+    files = sorted(os.listdir("/tmp/downloads"), key=lambda f: os.path.getmtime(os.path.join("/tmp/downloads", f)))
+    latest_file = os.path.join("/tmp/downloads", files[-1])
     return send_file(latest_file, as_attachment=True)
 
 if __name__ == "__main__":
