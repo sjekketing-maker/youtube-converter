@@ -1,5 +1,5 @@
+import requests
 from flask import Flask, request, render_template_string, redirect, abort
-from pytube import YouTube
 
 app = Flask(__name__)
 
@@ -19,6 +19,11 @@ HTML = """
 </html>
 """
 
+def extract_video_id(url):
+    if "v=" in url:
+        return url.split("v=")[-1].split("&")[0]
+    return url.rsplit("/", 1)[-1]
+
 @app.route("/")
 def index():
     return render_template_string(HTML)
@@ -29,13 +34,25 @@ def download():
     if not url:
         return abort(400, "Ingen URL oppgitt")
 
-    try:
-        yt = YouTube(url)
-        stream = yt.streams.get_highest_resolution()
-        return redirect(stream.url)
-    except Exception as e:
-        print("Feil:", e)
-        return abort(500, "Feil ved nedlasting")
+    video_id = extract_video_id(url)
+
+    # Hent manifest fra YouTube
+    manifest_url = f"https://www.youtube.com/get_video_info?video_id={video_id}"
+    r = requests.get(manifest_url)
+
+    if r.status_code != 200:
+        return abort(500, "Kunne ikke hente manifest")
+
+    data = r.text
+
+    # Finn første videostrøm
+    if "url=" not in data:
+        return abort(500, "Ingen videostrøm funnet")
+
+    stream_url = data.split("url=")[1].split("&")[0]
+    stream_url = requests.utils.unquote(stream_url)
+
+    return redirect(stream_url)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
