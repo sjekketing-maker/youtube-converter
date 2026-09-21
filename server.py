@@ -31,7 +31,6 @@ def index():
 
         base = [
             "yt-dlp",
-            "--cookies-from-browser", "none",
             "--user-agent", "Mozilla/5.0 (Linux; Android 10)"
         ]
 
