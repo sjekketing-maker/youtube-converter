@@ -1,6 +1,6 @@
 import os
-import subprocess
-from flask import Flask, request, send_file, render_template_string, abort
+from flask import Flask, request, render_template_string, redirect, abort
+from pytube import YouTube
 
 app = Flask(__name__)
 
@@ -30,27 +30,13 @@ def download():
     if not url:
         return abort(400, "Ingen URL oppgitt")
 
-    os.makedirs("downloads", exist_ok=True)
-    output_path = os.path.join("downloads", "%(title)s.%(ext)s")
-
     try:
-        subprocess.run(
-            ["yt-dlp", "-f", "best", "-o", output_path, url],
-            check=True
-        )
-    except subprocess.CalledProcessError as e:
-        print("Feil ved yt-dlp:", e)
+        yt = YouTube(url)
+        stream = yt.streams.get_highest_resolution()
+        return redirect(stream.url)
+    except Exception as e:
+        print("Feil:", e)
         return abort(500, "Feil ved nedlasting")
-
-    files = sorted(
-        os.listdir("downloads"),
-        key=lambda f: os.path.getmtime(os.path.join("downloads", f))
-    )
-    if not files:
-        return abort(500, "Ingen fil funnet")
-
-    latest_file = os.path.join("downloads", files[-1])
-    return send_file(latest_file, as_attachment=True)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
