@@ -47,6 +47,7 @@ def download():
         filename = "youtube.mp4"
 
     try:
+        print("Kaller RapidAPI-endpoint:", endpoint)
         resp = requests.get(
             endpoint,
             params={"url": url},
