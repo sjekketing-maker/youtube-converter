@@ -1,56 +1,58 @@
-from flask import Flask, request, render_template_string, send_file
-import subprocess
 import os
+import subprocess
+from flask import Flask, request, render_template_string, send_file
 
 app = Flask(__name__)
 
 HTML = """
-<h2>YouTube Converter</h2>
-
-<form method="POST">
-    <label>Velg type:</label><br>
-    <input type="radio" name="type" value="video" checked> Video<br>
-    <input type="radio" name="type" value="audio"> Audio<br><br>
-
-    <label>Lim inn YouTube-URL:</label><br>
-    <input type="text" name="url" style="width:400px;"><br><br>
-
-    <button type="submit">Konverter</button>
-</form>
-
-{% if message %}
-<p><strong>{{ message }}</strong></p>
-{% endif %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>YouTube Converter</title>
+</head>
+<body>
+    <h1>YouTube Converter</h1>
+    <form method="POST" action="/download">
+        <input type="text" name="url" placeholder="YouTube URL" required>
+        <select name="type">
+            <option value="video">Video</option>
+            <option value="audio">Audio</option>
+        </select>
+        <button type="submit">Download</button>
+    </form>
+</body>
+</html>
 """
 
-@app.route("/", methods=["GET", "POST"])
+@app.route("/")
 def index():
-    if request.method == "POST":
-        url = request.form.get("url")
-        type_ = request.form.get("type")
+    return render_template_string(HTML)
 
-        base = [
-            "yt-dlp",
-            "--user-agent", "Mozilla/5.0 (Linux; Android 10)"
-        ]
+@app.route("/download", methods=["POST"])
+def download():
+    url = request.form.get("url")
+    type_ = request.form.get("type")
 
-     
+    # Sørg for at downloads-mappen finnes
+    os.makedirs("downloads", exist_ok=True)
 
-       if type_ == "video":
-           cmd = base + ["-f", "best", "--no-mtime", url]
-       else:
-           cmd = base + ["-f", "bestaudio", "--no-mtime", url]
+    # yt-dlp basekommando
+    base = ["yt-dlp", "-o", "downloads/%(title)s.%(ext)s"]
 
-        # Kjør yt-dlp
-        subprocess.run(cmd)
+    # Render støtter ikke ffmpeg → bruk fallback
+    if type_ == "video":
+        cmd = base + ["-f", "best", "--no-mtime", url]
+    else:
+        cmd = base + ["-f", "bestaudio", "--no-mtime", url]
 
-        # Finn siste nedlastede fil
-        files = [f for f in os.listdir('.') if os.path.isfile(f)]
-        latest = max(files, key=os.path.getctime)
+    # Kjør yt-dlp
+    subprocess.run(cmd)
 
-        # Send filen til brukeren
-        return send_file(latest, as_attachment=True)
+    # Finn siste fil
+    files = os.listdir("downloads")
+    latest = max([f"downloads/" + f for f in files], key=os.path.getctime)
 
-    return render_template_string(HTML, message=None)
-    if __name__ == "__main__":
-app.run(host="0.0.0.0", port=5000)
+    return send_file(latest, as_attachment=True)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
