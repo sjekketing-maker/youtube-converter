@@ -4,6 +4,7 @@ from flask import Flask, request, send_file, abort
 from io import BytesIO
 
 app = Flask(__name__)
+app.debug = True
 
 RAPIDAPI_KEY = os.environ.get("RAPIDAPI_KEY")
 RAPIDAPI_HOST = os.environ.get("RAPIDAPI_HOST")  # skal være: youtube-media-downloader.p.rapidapi.com
