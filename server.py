@@ -23,10 +23,17 @@ def download():
     output_path = "/tmp/downloads/%(title)s.%(ext)s"
 
     try:
-        subprocess.run(
-            ["yt-dlp", "--no-playlist", "--no-warnings", "-o", output_path, url],
-            check=True
-        )
+    result = subprocess.run(
+        ["yt-dlp", "-o", output_path, url],
+        capture_output=True,
+        text=True
+)
+
+print("YT-DLP STDOUT:", result.stdout)
+print("YT-DLP STDERR:", result.stderr)
+
+if result.returncode != 0:
+    return abort(500, "yt-dlp feilet: " + result.stderr)
     except subprocess.CalledProcessError as e:
         print("yt-dlp error:", e)
         return abort(500, "Feil ved nedlasting")
