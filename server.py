@@ -30,8 +30,8 @@ def download():
 
     try:
         resp = requests.get(
-            f"https://{RAPIDAPI_HOST}/dl",
-            params={"id": url.split("v=")[-1]},
+            f"https://{RAPIDAPI_HOST}/get-url",
+            params={"url": url},
             headers=headers,
             timeout=60
         )
