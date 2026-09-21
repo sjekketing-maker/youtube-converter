@@ -54,9 +54,14 @@ def download():
             headers=headers,
             timeout=60
         )
+   
+       print("RapidAPI status:", resp.status_code)
+       print("API raw response:", resp.text)
     except Exception as e:
-        print("API error:", e)
-        return abort(500, "Feil ved API-kall")
+    import traceback
+    print("API exception:", e)
+    traceback.print_exc()
+    return abort(500, "Feil ved API-kall")
 
     print("API raw response:", resp.text)
 
