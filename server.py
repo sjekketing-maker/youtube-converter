@@ -1,4 +1,3 @@
-import os
 from flask import Flask, request, render_template_string, redirect, abort
 from pytube import YouTube
 
