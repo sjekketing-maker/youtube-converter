@@ -5,7 +5,7 @@ from io import BytesIO
 import traceback
 
 app = Flask(__name__)
-app.debug = True  # viser alle print‑utskrifter i Railway‑loggene
+app.debug = True
 
 RAPIDAPI_KEY = os.environ.get("RAPIDAPI_KEY")
 RAPIDAPI_HOST = os.environ.get("RAPIDAPI_HOST")  # f.eks. youtube-media-downloader.p.rapidapi.com
@@ -39,7 +39,6 @@ def download():
         "x-rapidapi-host": RAPIDAPI_HOST
     }
 
-    # velg riktig endpoint
     if fmt == "audio":
         endpoint = f"https://{RAPIDAPI_HOST}/api/v1/audio"
         filename = "youtube.mp3"
@@ -66,7 +65,13 @@ def download():
         print("API response:", resp.status_code, resp.text)
         return abort(500, "API returnerte feil")
 
-    data = resp.json()
+    try:
+        data = resp.json()
+    except Exception as e:
+        print("JSON parse error:", e)
+        print("Raw text:", resp.text)
+        return abort(500, "Feil ved parsing av API-respons")
+
     download_url = data.get("url") or data.get("link") or data.get("download_url")
     if not download_url:
         print("API data:", data)
