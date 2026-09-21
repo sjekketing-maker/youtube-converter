@@ -1,6 +1,6 @@
 import os
 import subprocess
-from flask import Flask, request, render_template_string, send_file, abort
+from flask import Flask, request, send_file, render_template_string, abort
 
 app = Flask(__name__)
 
@@ -13,7 +13,7 @@ HTML = """
 <body>
     <h1>YouTube Downloader</h1>
     <form method="POST" action="/download">
-        <input type="text" name="url" placeholder="Lim inn YouTube‑lenke" required>
+        <input type="text" name="url" placeholder="Lim inn YouTube-lenke" required>
         <button type="submit">Last ned</button>
     </form>
 </body>
@@ -38,15 +38,18 @@ def download():
             ["yt-dlp", "-f", "best", "-o", output_path, url],
             check=True
         )
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as e:
+        print("Feil ved yt-dlp:", e)
         return abort(500, "Feil ved nedlasting")
 
-    # Finn siste nedlastede fil
-    files = sorted(os.listdir("downloads"), key=lambda f: os.path.getmtime(os.path.join("downloads", f)))
+    files = sorted(
+        os.listdir("downloads"),
+        key=lambda f: os.path.getmtime(os.path.join("downloads", f))
+    )
     if not files:
         return abort(500, "Ingen fil funnet")
-    latest_file = os.path.join("downloads", files[-1])
 
+    latest_file = os.path.join("downloads", files[-1])
     return send_file(latest_file, as_attachment=True)
 
 if __name__ == "__main__":
