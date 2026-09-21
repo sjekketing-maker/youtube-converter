@@ -56,6 +56,8 @@ def download():
         print("API error:", e)
         return abort(500, "Feil ved API-kall")
 
+    print("API raw response:", resp.text)
+
     if resp.status_code != 200:
         print("API response:", resp.status_code, resp.text)
         return abort(500, "API returnerte feil")
