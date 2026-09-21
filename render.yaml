@@ -2,6 +2,6 @@ services:
   - type: web
     name: youtube-converter
     env: python
-    buildCommand: "pip install -r requirements.txt"
+    buildCommand: "apt-get update && apt-get install -y ffmpeg && pip install -r requirements.txt"
     startCommand: "python server.py"
     plan: free
