@@ -1,5 +1,6 @@
-from flask import Flask, request, render_template_string
+from flask import Flask, request, render_template_string, send_file
 import subprocess
+import os
 
 app = Flask(__name__)
 
@@ -39,8 +40,15 @@ def index():
         else:
             cmd = base + ["-x", "--audio-format", "m4a", url]
 
+        # Kjør yt-dlp
         subprocess.run(cmd)
-        return render_template_string(HTML, message="Konvertering ferdig!")
+
+        # Finn siste nedlastede fil
+        files = [f for f in os.listdir('.') if os.path.isfile(f)]
+        latest = max(files, key=os.path.getctime)
+
+        # Send filen til brukeren
+        return send_file(latest, as_attachment=True)
 
     return render_template_string(HTML, message=None)
 
