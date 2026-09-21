@@ -1,14 +1,22 @@
 import os
-import subprocess
+import requests
 from flask import Flask, request, send_file, abort
+from io import BytesIO
 
 app = Flask(__name__)
+
+API_BASE_URL = os.environ.get("YOUTUBE_API_URL")      # f.eks. https://api.example.com
+API_KEY      = os.environ.get("YOUTUBE_API_KEY")      # din nøkkel
 
 @app.route("/")
 def index():
     return """
     <form method="POST" action="/download">
         <input name="url" placeholder="Lim inn YouTube-lenke" required>
+        <select name="format">
+            <option value="mp3">MP3</option>
+            <option value="mp4">MP4</option>
+        </select>
         <button type="submit">Last ned</button>
     </form>
     """
@@ -16,31 +24,39 @@ def index():
 @app.route("/download", methods=["POST"])
 def download():
     url = request.form.get("url")
+    fmt = request.form.get("format", "mp3")
+
     if not url:
         return abort(400, "Ingen URL oppgitt")
 
-    os.makedirs("/tmp/downloads", exist_ok=True)
-    output_path = "/tmp/downloads/%(title)s.%(ext)s"
+    if not API_BASE_URL or not API_KEY:
+        return abort(500, "API-konfigurasjon mangler")
 
+    # Eksempel på API-kall – tilpass til leverandøren du velger
     try:
-    result = subprocess.run(
-        ["yt-dlp", "-o", output_path, url],
-        capture_output=True,
-        text=True
-)
+        resp = requests.get(
+            f"{API_BASE_URL}/convert",
+            params={"url": url, "format": fmt},
+            headers={"Authorization": f"Bearer {API_KEY}"},
+            timeout=60,
+        )
+    except Exception as e:
+        print("API error:", e)
+        return abort(500, "Feil ved API-kall")
 
-print("YT-DLP STDOUT:", result.stdout)
-print("YT-DLP STDERR:", result.stderr)
+    if resp.status_code != 200:
+        print("API response:", resp.status_code, resp.text)
+        return abort(500, "API returnerte feil")
 
-if result.returncode != 0:
-    return abort(500, "yt-dlp feilet: " + result.stderr)
-    except subprocess.CalledProcessError as e:
-        print("yt-dlp error:", e)
-        return abort(500, "Feil ved nedlasting")
+    # Anta at API-et returnerer selve filen (binary)
+    file_bytes = BytesIO(resp.content)
+    filename = f"download.{fmt}"
 
-    files = sorted(os.listdir("/tmp/downloads"), key=lambda f: os.path.getmtime(os.path.join("/tmp/downloads", f)))
-    latest_file = os.path.join("/tmp/downloads", files[-1])
-    return send_file(latest_file, as_attachment=True)
+    return send_file(
+        file_bytes,
+        as_attachment=True,
+        download_name=filename
+    )
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
