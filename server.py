@@ -34,10 +34,12 @@ def index():
             "--user-agent", "Mozilla/5.0 (Linux; Android 10)"
         ]
 
-        if type_ == "video":
-            cmd = base + ["-f", "bv*+ba/b", url]
-        else:
-            cmd = base + ["-x", "--audio-format", "m4a", url]
+     
+
+       if type_ == "video":
+           cmd = base + ["-f", "best", "--no-mtime", url]
+       else:
+           cmd = base + ["-f", "bestaudio", "--no-mtime", url]
 
         # Kjør yt-dlp
         subprocess.run(cmd)
